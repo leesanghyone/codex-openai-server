@@ -1,0 +1,164 @@
+###############################################################################
+# Global defaults
+###############################################################################
+
+# Auto-detect text files and normalize line endings.
+# Specific overrides are defined below.
+* text=auto
+
+
+###############################################################################
+# Explicit text files (force LF)
+###############################################################################
+
+*.sh     text eol=lf
+*.sql    text eol=lf
+*.yml    text eol=lf
+*.yaml   text eol=lf
+*.py     text eol=lf
+*.txt    text eol=lf
+*.md     text eol=lf
+*.toml   text eol=lf
+*.js     text eol=lf
+*.jsx    text eol=lf
+*.ts     text eol=lf
+*.tsx    text eol=lf
+*.json   text eol=lf
+*.html   text eol=lf
+*.xml    text eol=lf
+*.css    text eol=lf
+*.rst    text eol=lf
+*.csv    text eol=lf
+*.tsv    text eol=lf
+*.kml    text eol=lf
+*.log    text eol=lf
+*.ini    text eol=lf
+*.cfg    text eol=lf
+*.conf   text eol=lf
+*.env*   text eol=lf
+*.git*   text eol=lf
+
+
+###############################################################################
+# Binary files (never normalize line endings, never attempt text diffs)
+###############################################################################
+
+# Images
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.svg   binary
+*.bmp   binary
+*.ico   binary
+*.tif   binary
+*.tiff  binary
+
+# Documents / Office
+*.pdf   binary
+*.doc   binary
+*.docx  binary
+*.xls   binary
+*.xlsx  binary
+*.ppt   binary
+*.pptx  binary
+
+# Audio
+*.wav   binary
+*.mp3   binary
+*.m4a   binary
+*.aac   binary
+*.flac  binary
+*.ogg   binary
+
+# Video
+*.mp4   binary
+*.mov   binary
+*.avi   binary
+*.mkv   binary
+*.webm  binary
+
+# Archives
+*.zip    binary
+*.tar    binary
+*.tar.gz binary
+*.tgz    binary
+*.rar    binary
+*.7z     binary
+
+# Fonts
+*.ttf    binary
+*.otf    binary
+*.woff   binary
+*.woff2  binary
+
+# GIS / scientific data (commonly large & binary)
+*.shp     binary
+*.dbf     binary
+*.prj     binary
+*.geojson binary
+*.gpkg    binary
+*.las     binary
+*.laz     binary
+*.kmz     binary
+
+
+###############################################################################
+# Git LFS (large or frequently changing binary files)
+#
+# Notes:
+# - These rules apply to NEW commits only unless history is migrated.
+# - LFS implies -text; binary is redundant but harmless.
+# - Add new extensions deliberately (do not wildcard).
+###############################################################################
+
+# Documents / Office
+*.pdf   filter=lfs diff=lfs merge=lfs -text
+*.xls   filter=lfs diff=lfs merge=lfs -text
+*.xlsx  filter=lfs diff=lfs merge=lfs -text
+*.docx  filter=lfs diff=lfs merge=lfs -text
+*.pptx  filter=lfs diff=lfs merge=lfs -text
+
+# Audio
+*.wav   filter=lfs diff=lfs merge=lfs -text
+*.m4a   filter=lfs diff=lfs merge=lfs -text
+
+# Video
+*.mp4   filter=lfs diff=lfs merge=lfs -text
+
+# Archives
+*.zip   filter=lfs diff=lfs merge=lfs -text
+
+
+###############################################################################
+# Generated files / merge strategy overrides
+#
+# This section controls how Git resolves MERGE CONFLICTS for specific files.
+#
+# ⚠️ Use with care:
+# - `merge=ours` means "always keep the version from the current branch"
+# - Changes from the other branch are silently discarded during merges
+#
+# ✅ Appropriate use cases:
+# - Files that are fully auto-generated
+# - Files that are NOT edited by hand
+# - Files that can always be regenerated from source
+# - Files where diffs and merge conflicts are noisy and not meaningful
+#
+# Examples:
+# - Generated documentation output (HTML/MD built from source elsewhere)
+# - Build artifacts or asset manifests
+# - Version bump or metadata files
+#
+# 🚫 Do NOT use for:
+# - Hand-edited documentation (e.g., README.md)
+# - Source-of-truth config files
+# - Any file where losing changes would be harmful
+# - Files added just to "make diffs smaller"
+#
+# If a file is important enough to review, it should NOT use `merge=ours`.
+###############################################################################
+
+# Example (disabled by default):
+# path/to/generated/file.ext merge=ours
+.github/workflows/*.lock.yml linguist-generated=true merge=ours

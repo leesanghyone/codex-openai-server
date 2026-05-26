@@ -1,0 +1,27 @@
+services:
+  codex_openai_server:
+    image: codex_openai_server:local
+    pull_policy: never
+    build:
+      context: .
+    working_dir: /workspace
+    environment:
+      PYTHONPATH: /workspace
+      WATCHFILES_FORCE_POLLING: "true"
+    command:
+      - python
+      - -m
+      - uvicorn
+      - codex_openai_server.openai_server:create_default_app
+      - --factory
+      - --host
+      - 0.0.0.0
+      - --port
+      - "8000"
+      - --reload
+      - --reload-dir
+      - /workspace/codex_openai_server
+    volumes:
+      - type: bind
+        source: .
+        target: /workspace

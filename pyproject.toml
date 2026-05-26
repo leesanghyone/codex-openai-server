@@ -1,0 +1,148 @@
+[build-system]
+requires = ["hatchling>=1.27.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "codex-openai-server"
+version = "0.1.0"
+description = "OpenAI-compatible HTTP server backed by locally authenticated ChatGPT Codex."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+authors = [
+  { name = "Joshua Bailey" },
+]
+maintainers = [
+  { name = "Joshua Bailey" },
+]
+license-files = ["LICENSE"]
+keywords = ["codex", "fastapi", "openai", "proxy", "responses-api", "sse"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Framework :: FastAPI",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+  "fastapi==0.136.1",
+  "httpx==0.28.1",
+  "python-dotenv==1.2.2",
+  "sse-starlette==3.3.4",
+  "uvicorn==0.46.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/joshuasundance-swca/codex_openai_server"
+Documentation = "https://github.com/joshuasundance-swca/codex_openai_server#readme"
+Repository = "https://github.com/joshuasundance-swca/codex_openai_server"
+Issues = "https://github.com/joshuasundance-swca/codex_openai_server/issues"
+Changelog = "https://github.com/joshuasundance-swca/codex_openai_server/blob/main/CHANGELOG.md"
+Security = "https://github.com/joshuasundance-swca/codex_openai_server/blob/main/SECURITY.md"
+
+[project.optional-dependencies]
+dev = [
+  "black==26.3.1",
+  "build>=1.4.0",
+  "bumpver>=2024.1130",
+  "mypy==1.20.2",
+  "openai==2.32.0",
+  "pre-commit>=4.3.0",
+  "pytest==9.0.3",
+  "ruff==0.15.11",
+  "twine>=6.2.0",
+]
+
+[project.scripts]
+codex_openai_server = "codex_openai_server.__main__:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["codex_openai_server"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/.dockerignore",
+  "/.env.example",
+  "/.github",
+  "/.pre-commit-config.yaml",
+  "/CHANGELOG.md",
+  "/CONTRIBUTING.md",
+  "/Dockerfile",
+  "/README.md",
+  "/SECURITY.md",
+  "/codex_openai_server",
+  "/docker-compose.local.yaml",
+  "/docker-compose.yaml",
+  "/LICENSE",
+  "/pyproject.toml",
+  "/tests",
+]
+
+[tool.bumpver]
+current_version = "0.1.0"
+version_pattern = "MAJOR.MINOR.PATCH"
+commit_message = "bump version {old_version} -> {new_version}"
+tag_message = "v{new_version}"
+tag_scope = "default"
+pre_commit_hook = ""
+post_commit_hook = ""
+commit = true
+tag = true
+push = true
+
+[tool.bumpver.file_patterns]
+"pyproject.toml" = [
+  'current_version = "{version}"',
+  'version = "{version}"',
+]
+"codex_openai_server/__init__.py" = [
+  '__version__ = "{version}"',
+]
+"docker-compose.yaml" = [
+  'CODEX_OPENAI_SERVER_IMAGE_VERSION:-v{version}',
+]
+".env.example" = [
+  'CODEX_OPENAI_SERVER_IMAGE_VERSION=v{version}',
+]
+
+[tool.pytest.ini_options]
+minversion = "9.0"
+addopts = ["-ra"]
+testpaths = ["tests"]
+
+[tool.mypy]
+warn_unused_configs = true
+files = ["codex_openai_server", "tests"]
+exclude = "(^build/|^dist/|^\\.venv/)"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 88
+src = ["codex_openai_server", "tests"]
+extend-exclude = [".venv", "build", "dist"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP"]
+ignore = ["E501"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+extend-exclude = '''
+/(
+    \.venv
+  | build
+  | dist
+)/
+'''
+
+[tool.bandit]
+exclude_dirs = ["tests"]
+skips = ["B311"]

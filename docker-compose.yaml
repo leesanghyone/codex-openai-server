@@ -1,0 +1,30 @@
+services:
+  codex_openai_server:
+    image: ${CODEX_OPENAI_SERVER_IMAGE:-ghcr.io/joshuasundance-swca/codex_openai_server}:${CODEX_OPENAI_SERVER_IMAGE_VERSION:-v0.1.0}
+    pull_policy: ${CODEX_OPENAI_SERVER_PULL_POLICY:-missing}
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      OPENAI_COMPAT_HOST: 0.0.0.0
+      OPENAI_COMPAT_PORT: 8000
+      CODEX_HOME: /home/app/.codex
+    ports:
+      - "${OPENAI_COMPAT_PUBLISHED_HOST:-127.0.0.1}:${OPENAI_COMPAT_PUBLISHED_PORT:-8000}:8000"
+    volumes:
+      - type: bind
+        source: ${LOCAL_CODEX_HOME:-~/.codex}
+        target: /home/app/.codex
+        read_only: true
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health').read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
