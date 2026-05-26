@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -18,6 +19,9 @@ UPSTREAM_BODY_LIMIT_ENV_VAR = "OPENAI_COMPAT_LOG_UPSTREAM_BODY_LIMIT"
 DEBUG_LOGGING_ENV_VAR = "OPENAI_COMPAT_DEBUG_LOGGING"
 LOG_PAYLOADS_ENV_VAR = "OPENAI_COMPAT_LOG_PAYLOADS"
 AUTH_REFRESH_RETRY_STATUS_CODES = frozenset({401, 403, 404})
+UPSTREAM_TIMEOUT = httpx.Timeout(300.0, connect=30.0, read=300.0, write=30.0, pool=30.0)
+UPSTREAM_STREAM_RETRY_ATTEMPTS = 3
+UPSTREAM_STREAM_RETRY_DELAY_SECONDS = 1.0
 
 
 @dataclass(slots=True)
@@ -281,46 +285,62 @@ async def create_response(
     **kwargs: Any,
 ) -> ParsedResponse:
     owns_client = client is None
-    async_client = client if client is not None else httpx.AsyncClient()
+    async_client = client if client is not None else httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT)
     retry_status_code: int | None = None
 
     try:
-        for force_auth_refresh in (False, True):
-            request_kwargs = await build_request_kwargs(
-                model=model,
-                input=input,
-                base_url=base_url,
-                client=async_client,
-                force_auth_refresh=force_auth_refresh,
-                **kwargs,
-            )
-            log_upstream_request(request_kwargs)
-            async with async_client.stream(
-                "POST",
-                request_kwargs["url"],
-                headers=request_kwargs["headers"],
-                json=request_kwargs["json"],
-            ) as response:
-                try:
-                    await raise_for_status_with_context(
-                        response,
-                        payload=request_kwargs["json"],
-                    )
-                except UpstreamHTTPError as exc:
-                    if _should_retry_with_fresh_auth(
-                        exc,
+        for stream_attempt in range(UPSTREAM_STREAM_RETRY_ATTEMPTS):
+            try:
+                for force_auth_refresh in (False, True):
+                    request_kwargs = await build_request_kwargs(
+                        model=model,
+                        input=input,
+                        base_url=base_url,
+                        client=async_client,
                         force_auth_refresh=force_auth_refresh,
-                    ):
-                        retry_status_code = exc.status_code
-                        _log_auth_refresh_retry(exc)
-                        continue
-                    raise _normalize_upstream_error(exc) from exc
-                if retry_status_code is not None:
-                    _log_auth_refresh_retry_success(
-                        request_kwargs,
-                        retry_status_code=retry_status_code,
+                        **kwargs,
                     )
-                return await parse_response_stream_async(response.aiter_lines())
+                    log_upstream_request(request_kwargs)
+                    async with async_client.stream(
+                        "POST",
+                        request_kwargs["url"],
+                        headers=request_kwargs["headers"],
+                        json=request_kwargs["json"],
+                    ) as response:
+                        try:
+                            await raise_for_status_with_context(
+                                response,
+                                payload=request_kwargs["json"],
+                            )
+                        except UpstreamHTTPError as exc:
+                            if _should_retry_with_fresh_auth(
+                                exc,
+                                force_auth_refresh=force_auth_refresh,
+                            ):
+                                retry_status_code = exc.status_code
+                                _log_auth_refresh_retry(exc)
+                                continue
+                            raise _normalize_upstream_error(exc) from exc
+                        if retry_status_code is not None:
+                            _log_auth_refresh_retry_success(
+                                request_kwargs,
+                                retry_status_code=retry_status_code,
+                            )
+                        return await parse_response_stream_async(response.aiter_lines())
+            except (httpx.ReadTimeout, httpx.RemoteProtocolError) as exc:
+                if stream_attempt == UPSTREAM_STREAM_RETRY_ATTEMPTS - 1:
+                    raise
+                LOGGER.warning(
+                    "Upstream Codex stream interrupted; retrying request",
+                    extra={
+                        "attempt": stream_attempt + 1,
+                        "max_attempts": UPSTREAM_STREAM_RETRY_ATTEMPTS,
+                        "error_type": type(exc).__name__,
+                    },
+                )
+                await asyncio.sleep(
+                    UPSTREAM_STREAM_RETRY_DELAY_SECONDS * (stream_attempt + 1),
+                )
         raise RuntimeError("unreachable")
     finally:
         if owns_client:
@@ -336,7 +356,7 @@ async def stream_response(
     **kwargs: Any,
 ) -> AsyncIterator[tuple[str, dict[str, Any]]]:
     owns_client = client is None
-    async_client = client if client is not None else httpx.AsyncClient()
+    async_client = client if client is not None else httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT)
     retry_status_code: int | None = None
 
     try:
@@ -388,7 +408,7 @@ async def list_models(
     client: httpx.AsyncClient | None = None,
 ) -> list[str]:
     owns_client = client is None
-    async_client = client if client is not None else httpx.AsyncClient()
+    async_client = client if client is not None else httpx.AsyncClient(timeout=UPSTREAM_TIMEOUT)
 
     try:
         token, account_id = await _borrow_codex_key(
